@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Life of Shapes</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: linear-gradient(45deg, hsl(0, 100%, 85%), hsl(180, 100%, 85%));
+      animation: backgroundShift 30s infinite alternate ease-in-out;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    @keyframes backgroundShift {
+      0% { background: linear-gradient(45deg, hsl(0, 100%, 85%), hsl(180, 100%, 85%)); }
+      100% { background: linear-gradient(45deg, hsl(360, 100%, 85%), hsl(90, 100%, 85%)); }
+    }
+
+    .world {
+      position: relative;
+      width: 80%;
+      height: 80%;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .shape {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+      text-align: center;
+      transition: transform 1s linear, top 1s linear, left 1s linear, background-color 1s linear, border 0.5s linear;
+    }
+
+    .circle { border-radius: 50%; }
+    .square { }
+    .triangle {
+      width: 0;
+      height: 0;
+      border-left: 25px solid transparent;
+      border-right: 25px solid transparent;
+      border-bottom: 50px solid;
+    }
+    .pentagon { clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%); }
+    .hexagon { clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+  </style>
+</head>
+<body>
+  <div class="world" id="world"></div>
+
+  <script>
+    const world = document.getElementById('world');
+    const numShapes = 10;
+    const lifeStates = {};
+
+    // Initialize shapes
+    for (let i = 1; i <= numShapes; i++) {
+      const shapeTypes = ['circle', 'square', 'triangle', 'pentagon', 'hexagon'];
+      const type = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
+      const shape = document.createElement('div');
+      shape.className = `shape ${type}`;
+      shape.id = `shape${i}`;
+      shape.style.top = `${Math.random() * 80}%`;
+      shape.style.left = `${Math.random() * 80}%`;
+
+      lifeStates[shape.id] = {
+        id: shape.id,
+        type,
+        energy: 100,
+        size: 50,
+        alive: true,
+        top: parseFloat(shape.style.top),
+        left: parseFloat(shape.style.left),
+        rotation: Math.random() * 360, // Initial rotation
+      };
+
+      world.appendChild(shape);
+    }
+
+    // Update shapes
+    function updateShapes() {
+      Object.values(lifeStates).forEach(state => {
+        if (!state.alive) return;
+        const shape = document.getElementById(state.id);
+
+        // Random movement
+        state.left += Math.random() * 2 - 1;
+        state.top += Math.random() * 2 - 1;
+
+        // Keep shapes within bounds
+        state.left = Math.max(0, Math.min(80, state.left));
+        state.top = Math.max(0, Math.min(80, state.top));
+
+        // Decrease energy over time
+        state.energy -= 0.5;
+        if (state.energy <= 0) {
+          state.alive = false;
+          shape.style.opacity = 0; // Fade out dead shapes
+          return;
+        }
+
+        // Update size based on energy
+        state.size = 30 + state.energy / 2;
+        shape.style.width = `${state.size}px`;
+        shape.style.height = `${state.size}px`;
+
+        // Update position and rotation
+        shape.style.left = `${state.left}%`;
+        shape.style.top = `${state.top}%`;
+        state.rotation += 1; // Slowly rotate
+        shape.style.transform = `rotate(${state.rotation}deg)`;
+
+        // Change color based on energy
+        const colorHue = Math.max(0, (state.energy / 100) * 120);
+        shape.style.backgroundColor = `hsl(${colorHue}, 80%, 60%)`;
+      });
+    }
+
+    // Check for collisions
+    function checkCollisions() {
+      const shapes = Object.values(lifeStates).filter(state => state.alive);
+      for (let i = 0; i < shapes.length; i++) {
+        for (let j = i + 1; j < shapes.length; j++) {
+          const shapeA = shapes[i];
+          const shapeB = shapes[j];
+
+          const dx = shapeA.left - shapeB.left;
+          const dy = shapeA.top - shapeB.top;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          // If shapes collide, bounce them away
+          if (distance < (shapeA.size + shapeB.size) / 2) {
+            const angle = Math.atan2(dy, dx);
+            shapeA.left += Math.cos(angle) * 2;
+            shapeA.top += Math.sin(angle) * 2;
+            shapeB.left -= Math.cos(angle) * 2;
+            shapeB.top -= Math.sin(angle) * 2;
+          }
+        }
+      }
+    }
+
+    // Main loop
+    setInterval(() => {
+      updateShapes();
+      checkCollisions();
+    }, 50);
+  </script>
+</body>
+</html>
